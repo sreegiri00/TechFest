@@ -21,8 +21,8 @@ r.post('/request-otp', limit, wrap(async (req, res) => {
   const code = String(crypto.randomInt(100000, 1000000));
   await Otp.findOneAndUpdate({ email, role },
     { hash: hash(email, code), attempts: 0, expiresAt: new Date(Date.now() + 10 * 60 * 1000) }, { upsert: true });
-  const emailed = await sendOtp(email, code);
-  res.json({ message: 'Code sent', ...(emailed ? {} : { devCode: code }) });
+  await sendOtp(email, code);
+  res.json({ message: 'Code sent' });
 }));
 
 r.post('/verify-otp', limit, wrap(async (req, res) => {
