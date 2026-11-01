@@ -21,7 +21,14 @@ r.post('/request-otp', limit, wrap(async (req, res) => {
   const code = String(crypto.randomInt(100000, 1000000));
   await Otp.findOneAndUpdate({ email, role },
     { hash: hash(email, code), attempts: 0, expiresAt: new Date(Date.now() + 10 * 60 * 1000) }, { upsert: true });
-  await sendOtp(email, code);
+  try {
+    await sendOtp(email, code);
+  } catch (err) {
+    await Otp.deleteOne({ email, role }).catch(() => {});
+    return res.status(502).json({
+      message: err.message || 'Failed to send verification code email. Please try again later.'
+    });
+  }
   res.json({ message: 'Code sent' });
 }));
 
