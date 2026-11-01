@@ -21,20 +21,46 @@ export async function sendOtp(email, code) {
   const port = Number(process.env.SMTP_PORT || (process.env.SMTP_SECURE === 'true' ? 465 : 587));
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
+  const tls = process.env.SMTP_TLS_REJECT_UNAUTHORIZED === 'false'
+    ? { rejectUnauthorized: false }
+    : undefined;
+
+  const connectionTimeout = Number(process.env.SMTP_CONNECTION_TIMEOUT || 10000);
+  const greetingTimeout = Number(process.env.SMTP_GREETING_TIMEOUT || 10000);
+  const socketTimeout = Number(process.env.SMTP_SOCKET_TIMEOUT || 15000);
+
+  const auth = (process.env.SMTP_USER && process.env.SMTP_PASS)
+    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    : undefined;
+
   const transportConfig = service
     ? {
         service,
-        auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+        auth,
+        connectionTimeout,
+        greetingTimeout,
+        socketTimeout,
+        ...(tls ? { tls } : {}),
       }
     : {
         host,
         port,
         secure,
-        auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+        auth,
+        connectionTimeout,
+        greetingTimeout,
+        socketTimeout,
+        ...(tls ? { tls } : {}),
       };
 
   const transporter = nodemailer.createTransport(transportConfig);
-  const fromAddress = process.env.MAIL_FROM || process.env.SMTP_USER || '"TechFest Hub" <noreply@techfest.hub>';
+
+  let fromAddress = process.env.MAIL_FROM;
+  if (!fromAddress) {
+    fromAddress = process.env.SMTP_USER
+      ? `"TechFest Hub" <${process.env.SMTP_USER}>`
+      : '"TechFest Hub" <noreply@techfest.hub>';
+  }
 
   try {
     await transporter.sendMail({
@@ -46,7 +72,18 @@ export async function sendOtp(email, code) {
     });
     return true;
   } catch (error) {
-    console.error(`[OTP Error] Failed to send email to ${email}:`, error.message);
-    throw error;
+    console.error(`[OTP Error] Failed to send email to ${email}:`, error.message || error);
+    const friendlyError = new Error(
+      error.code === 'EAUTH'
+        ? 'Email authentication failed. Please check SMTP credentials.'
+        : error.code === 'ETIMEDOUT' || error.code === 'ESOCKETTIMEDOUT'
+        ? 'Email server connection timed out. Please try again.'
+        : error.code === 'ECONNREFUSED'
+        ? 'Unable to connect to email server. Connection refused.'
+        : `Email delivery failed: ${error.message || 'Unknown error'}`
+    );
+    friendlyError.originalError = error;
+    friendlyError.code = error.code;
+    throw friendlyError;
   }
 }
