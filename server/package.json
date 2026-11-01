@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "test": "node test-send-otp.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
