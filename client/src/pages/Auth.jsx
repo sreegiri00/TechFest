@@ -15,8 +15,8 @@ export function Login() {
     if (!/^\S+@\S+\.\S+$/.test(em.trim())) return setErr('Enter a valid email address, like you@college.edu.');
     setBusy(true);
     try {
-      const d = await api.post('/auth/request-otp', { email: em.trim(), role });
-      setAuth({ email: em.trim().toLowerCase(), qr, devCode: d.devCode });
+      await api.post('/auth/request-otp', { email: em.trim(), role });
+      setAuth({ email: em.trim().toLowerCase(), qr });
       go('otp');
     } catch (e) { setErr(e.message); setScan(false); }
     finally { setBusy(false); }
@@ -86,8 +86,7 @@ export function Otp() {
   }
   async function resend() {
     try {
-      const r = await api.post('/auth/request-otp', { email: auth.email, role });
-      setAuth({ ...auth, devCode: r.devCode });
+      await api.post('/auth/request-otp', { email: auth.email, role });
       setD(['', '', '', '', '', '']);
       setErr('');
       toast('New code sent');
@@ -107,7 +106,6 @@ export function Otp() {
         ))}
       </div>
       <p className="err" style={{ textAlign: 'center' }}>{err}</p>
-      {auth.devCode && <div className="demo">Demo mode: no email service is set up. Your code is <b>{auth.devCode}</b>.</div>}
       <button className="btn" onClick={verify}>Verify</button>
       <button className="lnk" onClick={resend}>Resend code</button>
     </>
