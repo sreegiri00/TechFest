@@ -70,7 +70,7 @@ export function Panel({ u, onChange }) {
         : <p className="m s">No events yet.</p>}
       <h2>Food</h2>
       {Object.keys(u.meals).map((m) => (
-        <div className="row" style={{ marginBottom: 8 }} key={m}>
+        <div className="row meal-row" style={{ marginBottom: 8 }} key={m}>
           <span>{m} <Eaten v={u.meals[m]} /></span>
           <button className="btn sm ghost" onClick={() => toggle(m)}>{u.meals[m] ? 'Mark as not eaten' : 'Mark as eaten'}</button>
         </div>
